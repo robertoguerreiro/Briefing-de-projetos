@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { GoogleGenAI } from "@google/genai";
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import { ContactInfo } from './components/sections/ContactInfo';
@@ -12,6 +13,7 @@ import type { FormData } from './types';
 import { VideoBriefing } from './components/sections/VideoBriefing';
 import { WebsiteBriefing } from './components/sections/WebsiteBriefing';
 import { ThankYouPage } from './components/pages/ThankYouPage';
+import { generateBriefingBody } from './utils/formatBriefing';
 
 
 const App: React.FC = () => {
@@ -70,6 +72,9 @@ const App: React.FC = () => {
     });
 
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -101,13 +106,47 @@ const App: React.FC = () => {
         });
     }, []);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitted(true);
+        setIsAnalyzing(true);
+        setError(null);
+
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+            const briefingText = generateBriefingBody(formData);
+            
+            const prompt = `
+                Você é um diretor de arte e gerente de projetos de classe mundial. Sua tarefa é analisar o briefing de projeto de um cliente.
+                Aqui está o briefing:
+                ---
+                ${briefingText}
+                ---
+                Forneça uma análise concisa e profissional deste briefing. Estruture sua resposta em três partes usando markdown simples (negrito para títulos):
+                1. **Resumo dos Pontos-Chave:** Resuma brevemente a solicitação principal.
+                2. **Pontos para Clarificação:** Identifique possíveis ambiguidades, informações ausentes ou áreas onde o cliente poderia fornecer mais detalhes para garantir o sucesso do projeto. Formule estas questões de forma prestativa.
+                3. **Próximos Passos Sugeridos:** Sugira os próximos passos lógicos para o projeto com base no briefing fornecido.
+                Mantenha o tom encorajador e profissional. A análise deve ser em português.
+            `;
+
+            const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: prompt,
+            });
+
+            setAnalysisResult(response.text);
+
+        } catch (err) {
+            console.error("Error calling Gemini API:", err);
+            setError("Ocorreu um erro ao analisar o briefing. Por favor, tente novamente mais tarde.");
+            setAnalysisResult(null);
+        } finally {
+            setIsAnalyzing(false);
+        }
     };
     
     if (isSubmitted) {
-        return <ThankYouPage data={formData} />;
+        return <ThankYouPage data={formData} isAnalyzing={isAnalyzing} analysisResult={analysisResult} error={error} />;
     }
 
     return (
