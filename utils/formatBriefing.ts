@@ -1,122 +1,93 @@
 import type { FormData } from '../types';
 
-export const generateBriefingBody = (data: FormData): string => {
-    let body = "";
+export const formatBriefing = (data: FormData): string => {
+    let content = `Briefing do Projeto - ${data.projectName || 'Não especificado'}\n`;
+    content += `Data de Envio: ${data.submission_date ? new Date(data.submission_date).toLocaleDateString('pt-BR') : 'N/A'}\n\n`;
 
-    const addSection = (title: string) => {
-        body += `<h3 style="font-size: 1.1rem; color: #D33434; margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 5px;">${title}</h3>`;
-    };
+    content += "========================================\n";
+    content += "INFORMAÇÕES DE CONTATO\n";
+    content += "========================================\n";
+    content += `Nome Completo: ${data.fullName || 'Não informado'}\n`;
+    content += `Email: ${data.email || 'Não informado'}\n`;
+    content += `Telefone/WhatsApp: ${data.phone || 'Não informado'}\n`;
+    content += `Empresa: ${data.company || 'Não informado'}\n`;
+    content += `Cargo/Função: ${data.role || 'Não informado'}\n\n`;
 
-    const addField = (label: string, value: string | string[] | undefined | null) => {
-        if (!value || (Array.isArray(value) && value.length === 0)) {
-            return;
-        }
-        
-        const displayValue = Array.isArray(value) ? value.join(', ') : value;
-        // Escape only the value part to prevent HTML injection from user input
-        const escapedValue = displayValue.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        
-        body += `<p style="margin: 0.5em 0;"><strong>${label}:</strong> ${escapedValue}</p>`;
-    };
-    
-    const projectTypeMap: { [key: string]: string } = {
-        'branding_visual': 'Branding, Rebranding e/ou Identidade Visual',
-        'video_animation': 'Vídeo / Animação (Institucional, Promocional, Motion Graphics)',
-        'website': 'Website (Institucional, Landing Page, E-commerce Básico)',
-    };
-    
-    const mapValues = (values: string[], map: { [key: string]: string }) => {
-        return values.map(v => map[v] || v);
-    };
+    content += "========================================\n";
+    content += "TIPO DE PROJETO\n";
+    content += "========================================\n";
+    content += `${data.projectTypes.length > 0 ? data.projectTypes.join(', ') : 'Não informado'}\n\n`;
 
-    addSection("INFORMAÇÕES DE CONTATO");
-    addField("Nome Completo", data.fullName);
-    addField("Email", data.email);
-    addField("Telefone/WhatsApp", data.phone);
-    addField("Empresa", data.company);
-    addField("Cargo/Função", data.role);
-
-    addSection("TIPO(S) DE PROJETO");
-    addField("Tipos selecionados", mapValues(data.projectTypes, projectTypeMap));
-    
-    addSection("SOBRE O PROJETO (GERAL)");
-    addField("Nome do projeto", data.projectName);
-    addField("Resumo do que precisa", data.projectSummary);
-    addField("Principais objetivos", data.projectObjectives);
-    addField("Público principal", data.targetAudience);
-    addField("Problema que resolve", data.problemToSolve);
-    addField("Principais diferenciais", data.keyDifferentiators);
-    addField("Prazo ideal", data.deadline);
-    addField("Faixa de orçamento", data.budget);
+    content += "========================================\n";
+    content += "SOBRE O PROJETO (GERAL)\n";
+    content += "========================================\n";
+    content += `Nome do Projeto: ${data.projectName || 'Não informado'}\n`;
+    content += `Resumo: ${data.projectSummary || 'Não informado'}\n`;
+    content += `Principais Objetivos: ${data.projectObjectives || 'Não informado'}\n`;
+    content += `Público Principal: ${data.targetAudience || 'Não informado'}\n`;
+    content += `Problema a ser Resolvido: ${data.problemToSolve || 'Não informado'}\n`;
+    content += `Principais Diferenciais: ${data.keyDifferentiators || 'Não informado'}\n`;
+    content += `Prazo Ideal: ${data.deadline ? new Date(data.deadline).toLocaleDateString('pt-BR') : 'Não informado'}\n`;
+    content += `Faixa de Orçamento: ${data.budget || 'Não informado'}\n\n`;
 
     if (data.projectTypes.includes('branding_visual')) {
-        addSection("BRIEFING DE MARCA");
-        addField("Já possui um logotipo?", data.hasLogo);
-        addField("Possui manual da marca?", data.hasBrandManual);
-        const visualStylesText = [...data.visualStyles];
-        if (data.visualStyles.includes('outro') && data.otherStyle) {
-            const index = visualStylesText.indexOf('outro');
-            visualStylesText[index] = `Outro: ${data.otherStyle}`;
-        }
-        addField("Estilos visuais", visualStylesText);
-        addField("Cores que gosta/não gosta", data.colorPreferences);
-        addField("Preferência por fonte", data.fontPreferences);
-        addField("A marca possui um slogan?", data.hasSlogan);
-        addField("Valores e personalidade", data.brandValues);
-        addField("Detalhes do público-alvo", data.brandAudienceDetails);
-        addField("Concorrentes/marcas que admira", data.competitors);
-        addField("Referências visuais", data.visualReferences);
-        addField("O que NÃO GOSTARIA", data.visualDislikes);
+        content += "========================================\n";
+        content += "BRIEFING DE MARCA\n";
+        content += "========================================\n";
+        content += `Possui Logotipo: ${data.hasLogo || 'Não informado'}\n`;
+        content += `Possui Manual da Marca: ${data.hasBrandManual || 'Não informado'}\n`;
+        content += `Estilos Visuais: ${data.visualStyles.join(', ')}${data.visualStyles.includes('outro') ? ` - ${data.otherStyle}` : ''}\n`;
+        content += `Preferências de Cores: ${data.colorPreferences || 'Não informado'}\n`;
+        content += `Preferências de Fontes: ${data.fontPreferences || 'Não informado'}\n`;
+        content += `Possui Slogan: ${data.hasSlogan || 'Não informado'}\n`;
+        content += `Valores e Personalidade: ${data.brandValues || 'Não informado'}\n`;
+        content += `Detalhes do Público-Alvo da Marca: ${data.brandAudienceDetails || 'Não informado'}\n`;
+        content += `Concorrentes/Marcas Admiradas: ${data.competitors || 'Não informado'}\n`;
+        content += `Referências Visuais: ${data.visualReferences || 'Não informado'}\n`;
+        content += `O que NÃO gostaria: ${data.visualDislikes || 'Não informado'}\n\n`;
     }
 
     if (data.projectTypes.includes('video_animation')) {
-        addSection("BRIEFING DE VÍDEO / ANIMAÇÃO");
-        const videoTypesText = [...data.videoTypes];
-        if (data.videoTypes.includes('outro') && data.otherVideoType) {
-            const index = videoTypesText.indexOf('outro');
-            videoTypesText[index] = `Outro: ${data.otherVideoType}`;
-        }
-        addField("Tipos de vídeo", videoTypesText);
-        addField("Duração estimada", data.videoDuration);
-        addField("Links de referência", data.videoStyleLinks);
-        addField("Roteiro", data.videoScriptStatus);
-        addField("Materiais/Assets", data.videoAssetsStatus);
-        addField("Locução", data.videoNarration);
-        addField("Legendas", data.videoSubtitles);
-        const videoDistributionText = [...data.videoDistribution];
-        if(data.videoDistribution.includes('outro') && data.otherVideoDistribution) {
-            const index = videoDistributionText.indexOf('outro');
-            videoDistributionText[index] = `Outro: ${data.otherVideoDistribution}`;
-        }
-        addField("Onde será veiculado", videoDistributionText);
+        content += "========================================\n";
+        content += "BRIEFING DE VÍDEO / ANIMAÇÃO\n";
+        content += "========================================\n";
+        content += `Tipos de Vídeo: ${data.videoTypes.join(', ')}${data.videoTypes.includes('outro') ? ` - ${data.otherVideoType}` : ''}\n`;
+        content += `Duração Estimada: ${data.videoDuration || 'Não informado'}\n`;
+        content += `Links de Estilo: ${data.videoStyleLinks || 'Não informado'}\n`;
+        content += `Status do Roteiro: ${data.videoScriptStatus || 'Não informado'}\n`;
+        content += `Status dos Assets: ${data.videoAssetsStatus || 'Não informado'}\n`;
+        content += `Necessidade de Locução: ${data.videoNarration || 'Não informado'}\n`;
+        content += `Necessidade de Legendas: ${data.videoSubtitles || 'Não informado'}\n`;
+        content += `Onde será veiculado: ${data.videoDistribution.join(', ')}${data.videoDistribution.includes('outro') ? ` - ${data.otherVideoDistribution}` : ''}\n\n`;
     }
 
     if (data.projectTypes.includes('website')) {
-        addSection("BRIEFING DE WEBSITE");
-        const websiteObjectivesText = [...data.websiteObjectives];
-        if(data.websiteObjectives.includes('outro') && data.otherWebsiteObjective){
-            const index = websiteObjectivesText.indexOf('outro');
-            websiteObjectivesText[index] = `Outro: ${data.otherWebsiteObjective}`;
-        }
-        addField("Principais objetivos", websiteObjectivesText);
-        addField("Principal ação/função do usuário", data.mainUserAction);
-        addField("Domínio", data.hasDomain);
-        addField("Hospedagem", data.hasHosting);
-        addField("Seções/Páginas", data.websiteSections);
-        addField("Funcionalidade específica", data.specificFunctionality);
-        addField("Sites que gosta e não gosta", data.likedWebsites);
-        addField("Fornecimento de conteúdo", data.contentProvider);
+        content += "========================================\n";
+        content += "BRIEFING DE WEBSITE\n";
+        content += "========================================\n";
+        content += `Objetivos do Site: ${data.websiteObjectives.join(', ')}${data.websiteObjectives.includes('outro') ? ` - ${data.otherWebsiteObjective}` : ''}\n`;
+        content += `Principal Ação do Usuário: ${data.mainUserAction || 'Não informado'}\n`;
+        content += `Possui Domínio: ${data.hasDomain || 'Não informado'}\n`;
+        content += `Possui Hospedagem: ${data.hasHosting || 'Não informado'}\n`;
+        content += `Seções/Páginas: ${data.websiteSections || 'Não informado'}\n`;
+        content += `Funcionalidades Específicas: ${data.specificFunctionality || 'Não informado'}\n`;
+        content += `Sites de Referência (Gosta/Não Gosta): ${data.likedWebsites || 'Não informado'}\n`;
+        content += `Fornecedor do Conteúdo: ${data.contentProvider || 'Não informado'}\n\n`;
     }
 
-    addSection("MARKETING DIGITAL");
-    addField("Estratégia de marketing digital", data.digitalMarketingStrategy);
-    addField("Considera importante SEO?", data.seoImportance);
-    addField("Pensa em investir em tráfego pago?", data.paidTraffic);
-    addField("Redes sociais", data.socialMedia);
+    content += "========================================\n";
+    content += "MARKETING DIGITAL\n";
+    content += "========================================\n";
+    content += `Estratégia Atual: ${data.digitalMarketingStrategy || 'Não informado'}\n`;
+    content += `Importância de SEO: ${data.seoImportance || 'Não informado'}\n`;
+    content += `Investimento em Tráfego Pago: ${data.paidTraffic || 'Não informado'}\n`;
+    content += `Redes Sociais: ${data.socialMedia || 'Não informado'}\n\n`;
 
-    addSection("INFORMAÇÕES ADICIONAIS");
-    addField("Informações extras", data.additionalInfo);
-    addField("Como nos encontrou?", data.howFound);
+    content += "========================================\n";
+    content += "INFORMAÇÕES ADICIONAIS\n";
+    content += "========================================\n";
+    content += `Informações Extras: ${data.additionalInfo || 'Não informado'}\n`;
+    content += `Como nos Encontrou: ${data.howFound || 'Não informado'}\n`;
 
-    return body;
+    return content;
 };

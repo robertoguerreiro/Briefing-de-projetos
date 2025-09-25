@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
+// Fix: Import GoogleGenAI to use the Gemini API for content generation.
+import { GoogleGenAI } from '@google/genai';
+import type { FormData } from '../../types';
 import { Header } from '../layout/Header';
 import { Footer } from '../layout/Footer';
-import { LoadingSpinner } from '../icons/LoadingSpinner';
-import { DocumentDownloadIcon } from '../icons/DocumentDownloadIcon';
 import { TrashIcon } from '../icons/TrashIcon';
+import { DocumentDownloadIcon } from '../icons/DocumentDownloadIcon';
+import { SparklesIcon } from '../icons/SparklesIcon';
+import { LoadingSpinner } from '../icons/LoadingSpinner';
 import { generatePdf } from '../../utils/generatePdf';
-import type { FormData } from '../../types';
+import { formatBriefing } from '../../utils/formatBriefing';
 
 interface AdminDashboardProps {
     onBackToHome: () => void;
@@ -14,169 +18,174 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, onLogout }) => {
     const [briefings, setBriefings] = useState<FormData[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedBriefing, setSelectedBriefing] = useState<FormData | null>(null);
+    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const [summary, setSummary] = useState('');
 
     useEffect(() => {
-        setIsLoading(true);
         try {
             const storedBriefings = localStorage.getItem('briefings');
             if (storedBriefings) {
                 const parsedBriefings: FormData[] = JSON.parse(storedBriefings);
-                const sortedBriefings = parsedBriefings.sort((a, b) => {
-                    // Safely handle cases where submission_date might be missing
+                // Sort by submission date, newest first
+                parsedBriefings.sort((a, b) => {
                     const dateA = a.submission_date ? new Date(a.submission_date).getTime() : 0;
                     const dateB = b.submission_date ? new Date(b.submission_date).getTime() : 0;
-                    return dateB - dateA; // Newest first
+                    return dateB - dateA;
                 });
-                setBriefings(sortedBriefings);
+                setBriefings(parsedBriefings);
             }
-        } catch (err) {
-            console.error("Failed to load or parse briefings:", err);
-            setError('Falha ao carregar briefings do armazenamento local.');
+        } catch (e) {
+            setError('Falha ao carregar os briefings do armazenamento local.');
+            console.error(e);
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     }, []);
 
-    const handleDelete = async (id: number | string) => {
+    const handleDelete = (id: number | string) => {
         if (window.confirm('Tem certeza que deseja excluir este briefing? Esta ação não pode ser desfeita.')) {
             try {
                 const updatedBriefings = briefings.filter(b => b.id !== id);
-                localStorage.setItem('briefings', JSON.stringify(updatedBriefings));
                 setBriefings(updatedBriefings);
+                localStorage.setItem('briefings', JSON.stringify(updatedBriefings));
                 if (selectedBriefing?.id === id) {
                     setSelectedBriefing(null);
+                    setSummary('');
                 }
-            } catch (err) {
-                setError('Falha ao excluir o briefing do armazenamento local.');
+            } catch (e) {
+                setError('Falha ao excluir o briefing.');
+                console.error(e);
             }
         }
     };
     
-    const handleDownload = (briefing: FormData) => {
-        generatePdf(briefing);
+    const handleGenerateSummary = async () => {
+        if (!selectedBriefing) return;
+        
+        setIsSummaryLoading(true);
+        setSummary('');
+        setError(null);
+        
+        try {
+            // Fix: Per guidelines, initialize GoogleGenAI with apiKey from process.env.
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+            const briefingText = formatBriefing(selectedBriefing);
+            const prompt = `Baseado no seguinte briefing, gere um resumo executivo conciso em 3 parágrafos, destacando os pontos-chave, objetivos e o escopo do projeto. O resumo deve ser profissional e direto ao ponto, ideal para uma rápida avaliação gerencial. O briefing está em português.\n\n--- INÍCIO DO BRIEFING ---\n\n${briefingText}\n\n--- FIM DO BRIEFING ---`;
+            
+            // Fix: Per guidelines, use ai.models.generateContent to get a response.
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+            });
+
+            // Fix: Per guidelines, access the text directly from the response object.
+            setSummary(response.text);
+
+        } catch (err) {
+            console.error("Error generating summary:", err);
+            const errorMessage = err instanceof Error ? err.message : 'Um erro desconhecido ocorreu.';
+            setSummary(`Ocorreu um erro ao gerar o resumo: ${errorMessage}`);
+            setError(`Falha na geração do resumo: ${errorMessage}`);
+        } finally {
+            setIsSummaryLoading(false);
+        }
     };
 
-    const renderBriefingDetails = (briefing: FormData) => {
+
+    const renderBriefingDetails = () => {
+        if (!selectedBriefing) return null;
+        const briefingText = formatBriefing(selectedBriefing);
+
         return (
-            <div className="space-y-4 text-sm">
-                {Object.entries(briefing).map(([key, value]) => {
-                    if (value === null || value === '' || (Array.isArray(value) && value.length === 0)) return null;
-
-                    const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
-                    
-                    let formattedValue;
-                    if (key === 'submission_date' && typeof value === 'string') {
-                        formattedValue = new Date(value).toLocaleString('pt-BR');
-                    } else {
-                        formattedValue = Array.isArray(value) ? value.join(', ') : String(value);
-                    }
-
-
-                    return (
-                        <div key={key} className="pb-2 border-b border-slate-200 last:border-b-0">
-                            <h4 className="font-semibold text-slate-500">{formattedKey}</h4>
-                            <p className="text-slate-800 whitespace-pre-wrap">{formattedValue}</p>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75" onClick={() => setSelectedBriefing(null)}>
+                <div className="relative w-full max-w-4xl h-[90vh] flex flex-col rounded-lg bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+                    <div className="flex-shrink-0 border-b p-6">
+                        <h3 className="text-2xl font-bold text-slate-800">{selectedBriefing.projectName}</h3>
+                         <p className="text-sm text-slate-500">de {selectedBriefing.fullName}</p>
+                        <button onClick={() => setSelectedBriefing(null)} className="absolute top-4 right-4 text-3xl font-light text-slate-500 hover:text-slate-800">&times;</button>
+                    </div>
+                    <div className="flex-grow overflow-y-auto p-6">
+                        <div className="mb-6 space-x-2">
+                            <button onClick={() => generatePdf(selectedBriefing)} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                                <DocumentDownloadIcon className="h-4 w-4" />
+                                Baixar PDF
+                            </button>
+                            <button onClick={handleGenerateSummary} disabled={isSummaryLoading} className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-50">
+                               <SparklesIcon className="h-4 w-4"/>
+                               {isSummaryLoading ? 'Gerando...' : 'Gerar Resumo com IA'}
+                            </button>
                         </div>
-                    );
-                })}
+
+                        {isSummaryLoading && <div className="flex items-center justify-center p-8"><LoadingSpinner className="h-8 w-8 animate-spin text-purple-600"/></div>}
+                        {summary && (
+                            <div className="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4">
+                                <h4 className="font-bold text-purple-800">Resumo Executivo (IA)</h4>
+                                <p className="whitespace-pre-wrap text-sm text-slate-700">{summary}</p>
+                            </div>
+                        )}
+                        
+                        <pre className="whitespace-pre-wrap rounded-md bg-slate-100 p-4 font-mono text-sm text-slate-800">{briefingText}</pre>
+                    </div>
+                </div>
             </div>
         );
     };
 
-
     return (
         <div className="flex min-h-screen flex-col bg-slate-100">
             <Header />
-            <main className="flex-grow">
-                <div className="container mx-auto px-4 py-10">
-                    <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <button
-                                type="button"
-                                onClick={onBackToHome}
-                                className="flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                                </svg>
-                                Início
-                            </button>
-                             <h2 className="text-3xl font-bold text-slate-800">Briefings (Salvos Localmente)</h2>
-                        </div>
-                        <button
-                            onClick={onLogout}
-                            className="rounded-md bg-slate-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                        >
-                            Sair
-                        </button>
-                    </div>
-
-                    {isLoading && (
-                        <div className="flex justify-center p-12">
-                            <LoadingSpinner className="h-12 w-12 animate-spin text-red-600" />
-                        </div>
-                    )}
-                    {error && <p className="text-center text-red-600">{error}</p>}
-                    
-                    {!isLoading && !error && briefings.length === 0 && (
-                        <p className="py-10 text-center text-slate-500">Nenhum briefing encontrado neste navegador.</p>
-                    )}
-
-                    {!isLoading && briefings.length > 0 && (
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 xl:grid-cols-4">
-                            <div className="lg:col-span-1 xl:col-span-1">
-                                <ul className="space-y-2">
-                                    {briefings.map(b => (
-                                        <li key={b.id}>
-                                            <button
-                                                onClick={() => setSelectedBriefing(b)}
-                                                className={`w-full rounded-lg p-3 text-left transition-all duration-200 ${selectedBriefing?.id === b.id ? 'bg-red-600 text-white shadow-lg scale-105' : 'bg-white text-slate-800 hover:bg-slate-50 hover:shadow-md'}`}
-                                            >
-                                                <p className="font-bold truncate">{b.projectName || 'Projeto sem nome'}</p>
-                                                <p className="text-sm truncate">{b.fullName} ({b.company || 'N/A'})</p>
-                                                <p className="text-xs opacity-75 mt-1">
-                                                    {b.submission_date ? new Date(b.submission_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Data indisponível'}
-                                                </p>
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                            <div className="lg:col-span-2 xl:col-span-3">
-                                {selectedBriefing ? (
-                                    <div className="sticky top-10 rounded-lg bg-white p-6 shadow-xl">
-                                        <div className="mb-4 flex items-start justify-between border-b border-slate-200 pb-4">
-                                            <div className="max-w-[calc(100%-100px)]">
-                                                <h3 className="text-2xl font-bold text-slate-800">{selectedBriefing.projectName}</h3>
-                                                <p className="text-slate-500">{selectedBriefing.fullName}</p>
-                                            </div>
-                                            <div className="flex flex-shrink-0 gap-2">
-                                                <button onClick={() => handleDownload(selectedBriefing)} className="rounded-full p-2 text-slate-500 transition-colors hover:bg-blue-100 hover:text-blue-600" aria-label="Baixar PDF">
-                                                    <DocumentDownloadIcon className="h-6 w-6" />
-                                                </button>
-                                                <button onClick={() => handleDelete(selectedBriefing.id)} className="rounded-full p-2 text-slate-500 transition-colors hover:bg-red-100 hover:text-red-600" aria-label="Excluir Briefing">
-                                                    <TrashIcon className="h-6 w-6" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className="max-h-[65vh] overflow-y-auto pr-2">
-                                            {renderBriefingDetails(selectedBriefing)}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex h-full items-center justify-center rounded-lg bg-white/50 p-10 text-center text-slate-500 shadow-inner">
-                                        <p>Selecione um briefing na lista à esquerda para ver os detalhes.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
+            <main className="container mx-auto flex-grow px-4 py-8">
+                 <div className="mb-6 flex items-center justify-between">
+                    <h2 className="text-3xl font-bold text-slate-800">Painel de Briefings</h2>
+                     <div>
+                        <button onClick={onBackToHome} className="mr-4 rounded-md bg-slate-200 px-4 py-2 font-semibold text-slate-700 transition hover:bg-slate-300">Voltar</button>
+                        <button onClick={onLogout} className="rounded-md bg-red-600 px-4 py-2 font-semibold text-white transition hover:bg-red-700">Sair</button>
+                     </div>
                 </div>
+
+                {error && <div className="mb-4 rounded-md bg-red-100 p-4 text-red-700">{error}</div>}
+
+                {loading ? (
+                    <p>Carregando briefings...</p>
+                ) : briefings.length > 0 ? (
+                    <div className="overflow-x-auto rounded-lg bg-white shadow-md">
+                        <table className="min-w-full divide-y divide-slate-200">
+                            <thead className="bg-slate-50">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Projeto</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Cliente</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Data</th>
+                                    <th scope="col" className="relative px-6 py-3">
+                                        <span className="sr-only">Ações</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200 bg-white">
+                                {briefings.map(briefing => (
+                                    <tr key={briefing.id}>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">{briefing.projectName}</td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">{briefing.fullName}</td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">{briefing.submission_date ? new Date(briefing.submission_date).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+                                            <button onClick={() => { setSelectedBriefing(briefing); setSummary(''); }} className="font-semibold text-indigo-600 hover:text-indigo-900">Visualizar</button>
+                                            <button onClick={() => handleDelete(briefing.id)} className="ml-4 text-red-600 hover:text-red-900">
+                                                <TrashIcon className="h-5 w-5" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p className="mt-4 text-center text-slate-500">Nenhum briefing encontrado.</p>
+                )}
             </main>
             <Footer />
+            {renderBriefingDetails()}
         </div>
     );
 };
