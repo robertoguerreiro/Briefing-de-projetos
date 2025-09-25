@@ -12,7 +12,6 @@ import type { FormData } from './types';
 import { VideoBriefing } from './components/sections/VideoBriefing';
 import { WebsiteBriefing } from './components/sections/WebsiteBriefing';
 import { ThankYouPage } from './components/pages/ThankYouPage';
-import { generateBriefingBody } from './utils/formatBriefing';
 
 
 const App: React.FC = () => {
@@ -104,16 +103,6 @@ const App: React.FC = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
-        const briefingDetails = generateBriefingBody(formData);
-
-        // 1. Prepare Admin Email
-        const adminSubject = `Novo Briefing Recebido (${formData.projectName || 'Sem Nome'}) - via warrior.art.br`;
-        const adminBody = `Olá, Roberto,\n\nVocê recebeu um novo briefing de projeto através do site www.warrior.art.br.\n\n---------------------------------------\n\n${briefingDetails}`;
-        const mailtoLink = `mailto:roberto.carvalho.guerreiro@gmail.com?subject=${encodeURIComponent(adminSubject)}&body=${encodeURIComponent(adminBody)}`;
-        
-        // 2. Trigger mailto and redirect to Thank You page
-        window.location.href = mailtoLink;
         setIsSubmitted(true);
     };
     
