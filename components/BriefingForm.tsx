@@ -19,7 +19,7 @@ interface BriefingFormProps {
 }
 
 export const BriefingForm: React.FC<BriefingFormProps> = ({ onBackToHome }) => {
-    const [formData, setFormData] = useState<Omit<FormData, 'id'>>({
+    const [formData, setFormData] = useState<Omit<FormData, 'id' | 'submission_date'>>({
         fullName: '',
         email: '',
         phone: '',
@@ -74,7 +74,7 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({ onBackToHome }) => {
     });
 
     const [isSubmitted, setIsSubmitted] = useState(false);
-    const [submittedData, setSubmittedData] = useState<Omit<FormData, 'id'> | null>(null);
+    const [submittedData, setSubmittedData] = useState<FormData | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -113,12 +113,14 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({ onBackToHome }) => {
         setIsSubmitting(true);
         setError(null);
         
+        const submissionId = new Date().toISOString();
+        const submissionWithId: FormData = { ...formData, id: submissionId };
+
         try {
             // Salva no localStorage como backup
             try {
                 const submissions = JSON.parse(localStorage.getItem('briefingSubmissions') || '[]');
-                const newSubmission: FormData = { ...formData, id: new Date().toISOString() };
-                submissions.push(newSubmission);
+                submissions.push(submissionWithId);
                 localStorage.setItem('briefingSubmissions', JSON.stringify(submissions));
             } catch (localError) {
                  console.warn("Failed to save briefing to local storage as backup", localError);
@@ -127,7 +129,7 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({ onBackToHome }) => {
             // Envia para a API
             const response = await saveBriefing(formData);
             if(response.success) {
-                setSubmittedData(formData);
+                setSubmittedData(submissionWithId);
                 setIsSubmitted(true);
             } else {
                 throw new Error(response.error || 'Ocorreu um erro desconhecido.');

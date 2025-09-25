@@ -29,13 +29,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, on
                 setBriefings(response.briefings);
             } else {
                 setError(response.error || 'Falha ao buscar os briefings do servidor.');
-                // Fallback to localStorage if API fails
-                try {
-                    const storedBriefings = JSON.parse(localStorage.getItem('briefingSubmissions') || '[]');
-                    setBriefings(storedBriefings.sort((a: FormData, b: FormData) => new Date(b.id as string).getTime() - new Date(a.id as string).getTime()));
-                } catch (localError) {
-                    console.error("Failed to load briefings from local storage", localError);
-                }
+                setBriefings([]); // Limpa os briefings em caso de erro
             }
             setIsLoading(false);
         };
