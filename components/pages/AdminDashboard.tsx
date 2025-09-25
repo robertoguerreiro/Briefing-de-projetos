@@ -1,10 +1,11 @@
-// Fix: Implementing the AdminDashboard component to display and manage briefings.
 import React, { useState, useEffect } from 'react';
 import type { FormData } from '../../types';
 import { Header } from '../layout/Header';
 import { Footer } from '../layout/Footer';
 import { generateBriefingBody } from '../../utils/formatBriefing';
 import { TrashIcon } from '../icons/TrashIcon';
+import { LoadingSpinner } from '../icons/LoadingSpinner';
+import { getBriefings, deleteBriefing } from '../../utils/api';
 
 interface AdminDashboardProps {
     onBackToHome: () => void;
@@ -15,41 +16,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, on
     const [briefings, setBriefings] = useState<FormData[]>([]);
     const [selectedBriefing, setSelectedBriefing] = useState<FormData | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [briefingIdToDelete, setBriefingIdToDelete] = useState<string | null>(null);
+    const [briefingToDelete, setBriefingToDelete] = useState<FormData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        try {
-            const storedBriefings = JSON.parse(localStorage.getItem('briefingSubmissions') || '[]');
-            setBriefings(storedBriefings.sort((a: FormData, b: FormData) => new Date(b.id).getTime() - new Date(a.id).getTime()));
-        } catch (error) {
-            console.error("Failed to load briefings from local storage", error);
-            setBriefings([]);
-        }
+        const fetchBriefings = async () => {
+            setIsLoading(true);
+            setError(null);
+            const response = await getBriefings();
+            if (response.success && response.briefings) {
+                setBriefings(response.briefings);
+            } else {
+                setError(response.error || 'Falha ao buscar os briefings do servidor.');
+                // Fallback to localStorage if API fails
+                try {
+                    const storedBriefings = JSON.parse(localStorage.getItem('briefingSubmissions') || '[]');
+                    setBriefings(storedBriefings.sort((a: FormData, b: FormData) => new Date(b.id as string).getTime() - new Date(a.id as string).getTime()));
+                } catch (localError) {
+                    console.error("Failed to load briefings from local storage", localError);
+                }
+            }
+            setIsLoading(false);
+        };
+
+        fetchBriefings();
     }, []);
     
-    const openDeleteModal = (id: string) => {
-        setBriefingIdToDelete(id);
+    const openDeleteModal = (briefing: FormData) => {
+        setBriefingToDelete(briefing);
         setIsModalOpen(true);
     };
 
     const closeDeleteModal = () => {
-        setBriefingIdToDelete(null);
+        setBriefingToDelete(null);
         setIsModalOpen(false);
     };
 
-    const confirmDelete = () => {
-        if (!briefingIdToDelete) return;
+    const confirmDelete = async () => {
+        if (!briefingToDelete) return;
 
-        const updatedBriefings = briefings.filter(b => b.id !== briefingIdToDelete);
-        setBriefings(updatedBriefings);
-        localStorage.setItem('briefingSubmissions', JSON.stringify(updatedBriefings));
+        const response = await deleteBriefing(briefingToDelete.id);
         
-        if (selectedBriefing?.id === briefingIdToDelete) {
-            setSelectedBriefing(null);
+        if (response.success) {
+            const updatedBriefings = briefings.filter(b => b.id !== briefingToDelete.id);
+            setBriefings(updatedBriefings);
+            
+            if (selectedBriefing?.id === briefingToDelete.id) {
+                setSelectedBriefing(null);
+            }
+        } else {
+            alert(response.error || 'Não foi possível excluir o briefing.');
         }
 
         closeDeleteModal();
     };
+    
+    const getDate = (briefing: FormData) => {
+        return briefing.submission_date ? new Date(briefing.submission_date).toLocaleString() : new Date(briefing.id as string).toLocaleString();
+    }
 
     return (
         <div className="flex min-h-screen flex-col bg-slate-100">
@@ -73,11 +98,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, on
                     </div>
                 </div>
 
+                {error && <div className="mb-4 rounded-md bg-red-100 p-4 text-center text-red-700">{error}</div>}
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Briefing List */}
                     <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-4 overflow-y-auto max-h-[75vh]">
                         <h3 className="text-xl font-bold border-b pb-2 mb-4 text-slate-700">Briefings Enviados ({briefings.length})</h3>
-                        {briefings.length > 0 ? (
+                        {isLoading ? (
+                            <div className="flex justify-center items-center p-8">
+                                <LoadingSpinner className="h-8 w-8 animate-spin text-red-600" />
+                            </div>
+                        ) : briefings.length > 0 ? (
                             <ul className="space-y-2">
                                 {briefings.map(briefing => (
                                     <li key={briefing.id} 
@@ -86,7 +117,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, on
                                     >
                                         <div className="font-bold text-slate-800">{briefing.projectName || 'Projeto sem nome'}</div>
                                         <div className="text-sm text-slate-600">{briefing.fullName}</div>
-                                        <div className="text-xs text-slate-400">{new Date(briefing.id).toLocaleString()}</div>
+                                        <div className="text-xs text-slate-400">{getDate(briefing)}</div>
                                     </li>
                                 ))}
                             </ul>
@@ -105,10 +136,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, on
                                         <h4 className="text-xl font-bold text-red-600">{selectedBriefing.projectName}</h4>
                                         <p className="text-slate-700"><strong>Cliente:</strong> {selectedBriefing.fullName}</p>
                                         <p className="text-slate-700"><strong>Email:</strong> <a href={`mailto:${selectedBriefing.email}`} className="text-red-600 hover:underline">{selectedBriefing.email}</a></p>
-                                        <p className="text-slate-700"><strong>Data:</strong> {new Date(selectedBriefing.id).toLocaleString()}</p>
+                                        <p className="text-slate-700"><strong>Data:</strong> {getDate(selectedBriefing)}</p>
                                     </div>
                                     <button 
-                                        onClick={() => openDeleteModal(selectedBriefing.id)} 
+                                        onClick={() => openDeleteModal(selectedBriefing)} 
                                         className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"
                                         aria-label="Excluir briefing"
                                     >
@@ -140,7 +171,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, on
                     <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" role="document" onClick={(e) => e.stopPropagation()}>
                         <h3 id="modal-title" className="text-xl font-bold text-slate-800">Confirmar Exclusão</h3>
                         <p className="mt-2 text-slate-600">
-                            Tem certeza que deseja excluir este briefing? Esta ação não pode ser desfeita.
+                            Tem certeza que deseja excluir o briefing "{briefingToDelete?.projectName}"? Esta ação não pode ser desfeita.
                         </p>
                         <div className="mt-6 flex justify-end gap-4">
                             <button

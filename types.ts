@@ -1,6 +1,6 @@
-// Fix: Defining the types used across the application.
 export interface FormData {
-    id: string;
+    id: number | string; // Can be a number from DB or string from localStorage fallback
+    submission_date?: string; // Will be added by the DB
     fullName: string;
     email: string;
     phone: string;
@@ -55,7 +55,7 @@ export interface FormData {
 }
 
 export interface FormSectionProps {
-    data: Omit<FormData, 'id'>;
+    data: Omit<FormData, 'id' | 'submission_date'>;
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
     onRadioChange?: (name: string, value: string) => void;
     onCheckboxChange?: (name: string, value: string) => void;
