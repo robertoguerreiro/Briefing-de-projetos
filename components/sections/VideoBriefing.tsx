@@ -5,7 +5,6 @@ import { SelectInput } from '../form/SelectInput';
 import { TextAreaInput } from '../form/TextAreaInput';
 import { RadioGroup } from '../form/RadioGroup';
 import { TextInput } from '../form/TextInput';
-import { FilmIcon } from '../icons/FilmIcon';
 import type { FormSectionProps } from '../../types';
 
 const videoTypeOptions = [
@@ -36,7 +35,7 @@ const distributionOptions = [
 
 export const VideoBriefing: React.FC<FormSectionProps> = ({ data, onChange, onRadioChange, onCheckboxChange }) => {
     return (
-        <Section icon={<FilmIcon />} title="Briefing de Vídeo / Animação">
+        <Section title="Briefing de Vídeo / Animação">
             <div>
                 <legend className="block text-sm font-bold text-slate-600">Que tipo(s) de vídeo/animação você precisa?</legend>
                 <div className="mt-2 grid grid-cols-1 gap-y-3 gap-x-2 sm:grid-cols-2">

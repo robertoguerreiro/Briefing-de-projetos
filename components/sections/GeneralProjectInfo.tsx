@@ -4,7 +4,6 @@ import { Section } from '../layout/Section';
 import { TextInput } from '../form/TextInput';
 import { TextAreaInput } from '../form/TextAreaInput';
 import { SelectInput } from '../form/SelectInput';
-import { BriefcaseIcon } from '../icons/BriefcaseIcon';
 import type { FormSectionProps } from '../../types';
 
 const budgetOptions = [
@@ -17,7 +16,7 @@ const budgetOptions = [
 
 export const GeneralProjectInfo: React.FC<FormSectionProps> = ({ data, onChange }) => {
     return (
-        <Section icon={<BriefcaseIcon />} title="Sobre o Projeto (Geral)">
+        <Section title="Sobre o Projeto (Geral)">
             <TextInput
                 label="Dê um nome para este projeto"
                 name="projectName"

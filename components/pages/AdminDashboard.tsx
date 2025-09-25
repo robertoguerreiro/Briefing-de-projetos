@@ -1,114 +1,164 @@
+// Fix: Implementing the AdminDashboard component to display and manage briefings.
 import React, { useState, useEffect } from 'react';
 import type { FormData } from '../../types';
 import { Header } from '../layout/Header';
 import { Footer } from '../layout/Footer';
 import { generateBriefingBody } from '../../utils/formatBriefing';
+import { TrashIcon } from '../icons/TrashIcon';
 
 interface AdminDashboardProps {
     onBackToHome: () => void;
     onLogout: () => void;
 }
 
-const BriefingCard: React.FC<{ briefing: FormData }> = ({ briefing }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const summary = generateBriefingBody(briefing);
-
-    return (
-        <div className="rounded-lg bg-white shadow-sm transition-shadow hover:shadow-md">
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full p-4 text-left"
-                aria-expanded={isOpen}
-                aria-controls={`briefing-details-${briefing.id}`}
-            >
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                        <p className="font-bold text-slate-800">{briefing.projectName || 'Projeto sem nome'}</p>
-                        <p className="text-sm text-slate-500">
-                            {briefing.fullName} ({briefing.company || 'N/A'}) - {briefing.id ? new Date(briefing.id).toLocaleDateString() : 'Data indisponível'}
-                        </p>
-                    </div>
-                    <svg
-                        className={`h-5 w-5 flex-shrink-0 transform text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        aria-hidden="true"
-                    >
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                </div>
-            </button>
-            {isOpen && (
-                <div id={`briefing-details-${briefing.id}`} className="border-t border-slate-200 p-4">
-                    <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-md bg-slate-50 p-4 font-sans text-sm text-slate-700">
-                        {summary}
-                    </pre>
-                </div>
-            )}
-        </div>
-    );
-};
-
-
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, onLogout }) => {
-    const [submissions, setSubmissions] = useState<FormData[]>([]);
+    const [briefings, setBriefings] = useState<FormData[]>([]);
+    const [selectedBriefing, setSelectedBriefing] = useState<FormData | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [briefingIdToDelete, setBriefingIdToDelete] = useState<string | null>(null);
 
     useEffect(() => {
-        // NOTE: In a full-stack app, this would fetch from a secure API endpoint.
-        // We are using localStorage here as requested for a frontend-only solution.
         try {
-            const storedSubmissions = localStorage.getItem('briefingSubmissions');
-            if (storedSubmissions) {
-                setSubmissions(JSON.parse(storedSubmissions));
-            }
-        } catch (err) {
-            console.error("Failed to load briefings from local storage", err);
+            const storedBriefings = JSON.parse(localStorage.getItem('briefingSubmissions') || '[]');
+            setBriefings(storedBriefings.sort((a: FormData, b: FormData) => new Date(b.id).getTime() - new Date(a.id).getTime()));
+        } catch (error) {
+            console.error("Failed to load briefings from local storage", error);
+            setBriefings([]);
         }
     }, []);
+    
+    const openDeleteModal = (id: string) => {
+        setBriefingIdToDelete(id);
+        setIsModalOpen(true);
+    };
+
+    const closeDeleteModal = () => {
+        setBriefingIdToDelete(null);
+        setIsModalOpen(false);
+    };
+
+    const confirmDelete = () => {
+        if (!briefingIdToDelete) return;
+
+        const updatedBriefings = briefings.filter(b => b.id !== briefingIdToDelete);
+        setBriefings(updatedBriefings);
+        localStorage.setItem('briefingSubmissions', JSON.stringify(updatedBriefings));
+        
+        if (selectedBriefing?.id === briefingIdToDelete) {
+            setSelectedBriefing(null);
+        }
+
+        closeDeleteModal();
+    };
 
     return (
-        <div className="min-h-screen bg-slate-100">
+        <div className="flex min-h-screen flex-col bg-slate-100">
             <Header />
-            <main className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
-                 <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-                    <h2 className="text-3xl font-bold text-slate-800">Dashboard de Briefings</h2>
-                    <div className="flex gap-2">
-                         <button
+            <main className="flex-grow container mx-auto p-4 md:p-8">
+                <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 className="text-3xl font-bold text-slate-800">Painel Administrativo</h2>
+                    <div>
+                        <button
                             onClick={onBackToHome}
-                            className="rounded-md bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-300"
+                            className="mr-4 rounded-md bg-slate-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-700"
                         >
                             Página Inicial
                         </button>
                         <button
                             onClick={onLogout}
-                            className="rounded-md bg-red-100 px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-200"
+                            className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700"
                         >
                             Sair
                         </button>
                     </div>
                 </div>
-                <div className="mb-6 rounded-md bg-blue-50 p-4 text-sm text-blue-700">
-                    <p><strong>Atenção:</strong> Os briefings exibidos aqui são lidos do armazenamento local do seu navegador (localStorage) e servem como um backup. A fonte principal de dados é o banco de dados do servidor.</p>
-                </div>
 
-                {submissions.length > 0 ? (
-                    <div className="space-y-4">
-                        {submissions
-                            .filter(b => b.id)
-                            .sort((a, b) => new Date(b.id!).getTime() - new Date(a.id!).getTime())
-                            .map(briefing => (
-                                <BriefingCard key={briefing.id} briefing={briefing} />
-                        ))}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Briefing List */}
+                    <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-4 overflow-y-auto max-h-[75vh]">
+                        <h3 className="text-xl font-bold border-b pb-2 mb-4 text-slate-700">Briefings Enviados ({briefings.length})</h3>
+                        {briefings.length > 0 ? (
+                            <ul className="space-y-2">
+                                {briefings.map(briefing => (
+                                    <li key={briefing.id} 
+                                        className={`p-3 rounded-md cursor-pointer border-l-4 transition-all ${selectedBriefing?.id === briefing.id ? 'bg-red-100 border-red-500' : 'border-transparent hover:bg-slate-100'}`}
+                                        onClick={() => setSelectedBriefing(briefing)}
+                                    >
+                                        <div className="font-bold text-slate-800">{briefing.projectName || 'Projeto sem nome'}</div>
+                                        <div className="text-sm text-slate-600">{briefing.fullName}</div>
+                                        <div className="text-xs text-slate-400">{new Date(briefing.id).toLocaleString()}</div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-slate-500 text-center py-8">Nenhum briefing encontrado.</p>
+                        )}
                     </div>
-                ) : (
-                    <div className="rounded-lg border-2 border-dashed border-slate-300 bg-white p-12 text-center">
-                        <h3 className="text-xl font-semibold text-slate-700">Nenhum briefing encontrado</h3>
-                        <p className="mt-2 text-slate-500">Ainda não há briefings salvos no seu navegador.</p>
+
+                    {/* Briefing Details */}
+                    <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6 min-h-[50vh]">
+                        <h3 className="text-2xl font-bold border-b pb-2 mb-4 text-slate-700">Detalhes do Briefing</h3>
+                        {selectedBriefing ? (
+                            <div>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h4 className="text-xl font-bold text-red-600">{selectedBriefing.projectName}</h4>
+                                        <p className="text-slate-700"><strong>Cliente:</strong> {selectedBriefing.fullName}</p>
+                                        <p className="text-slate-700"><strong>Email:</strong> <a href={`mailto:${selectedBriefing.email}`} className="text-red-600 hover:underline">{selectedBriefing.email}</a></p>
+                                        <p className="text-slate-700"><strong>Data:</strong> {new Date(selectedBriefing.id).toLocaleString()}</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => openDeleteModal(selectedBriefing.id)} 
+                                        className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"
+                                        aria-label="Excluir briefing"
+                                    >
+                                        <TrashIcon className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <pre className="mt-6 p-4 bg-slate-50 rounded-md whitespace-pre-wrap font-sans text-sm text-slate-800 max-h-[60vh] overflow-y-auto border">
+                                    {generateBriefingBody(selectedBriefing)}
+                                </pre>
+                            </div>
+                        ) : (
+                             <div className="flex items-center justify-center h-full text-center text-slate-500 italic">
+                                <p>Selecione um briefing na lista para ver os detalhes.</p>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
             </main>
             <Footer />
+
+            {isModalOpen && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60"
+                    aria-labelledby="modal-title"
+                    role="dialog"
+                    aria-modal="true"
+                    onClick={closeDeleteModal}
+                >
+                    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" role="document" onClick={(e) => e.stopPropagation()}>
+                        <h3 id="modal-title" className="text-xl font-bold text-slate-800">Confirmar Exclusão</h3>
+                        <p className="mt-2 text-slate-600">
+                            Tem certeza que deseja excluir este briefing? Esta ação não pode ser desfeita.
+                        </p>
+                        <div className="mt-6 flex justify-end gap-4">
+                            <button
+                                onClick={closeDeleteModal}
+                                className="rounded-md bg-slate-200 px-4 py-2 font-semibold text-slate-700 transition-colors hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="rounded-md bg-red-600 px-4 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                            >
+                                Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

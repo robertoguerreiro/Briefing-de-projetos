@@ -4,7 +4,6 @@ import { CheckboxInput } from '../form/CheckboxInput';
 import { TextAreaInput } from '../form/TextAreaInput';
 import { RadioGroup } from '../form/RadioGroup';
 import { TextInput } from '../form/TextInput';
-import { GlobeAltIcon } from '../icons/GlobeAltIcon';
 import type { FormSectionProps } from '../../types';
 
 const websiteObjectiveOptions = [
@@ -17,7 +16,7 @@ const websiteObjectiveOptions = [
 
 export const WebsiteBriefing: React.FC<FormSectionProps> = ({ data, onChange, onRadioChange, onCheckboxChange }) => {
     return (
-        <Section icon={<GlobeAltIcon />} title="Briefing de Website">
+        <Section title="Briefing de Website">
             <div>
                 <legend className="block text-sm font-bold text-slate-600">Quais os principais objetivos do seu novo site?</legend>
                 <div className="mt-2 space-y-3">

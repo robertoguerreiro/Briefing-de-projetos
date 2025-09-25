@@ -1,6 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { Header } from './layout/Header';
-import { Footer } from './layout/Footer';
 import { ContactInfo } from './sections/ContactInfo';
 import { ProjectType } from './sections/ProjectType';
 import { GeneralProjectInfo } from './sections/GeneralProjectInfo';
@@ -148,14 +146,24 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({ onBackToHome }) => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-100">
-            <Header />
-            <main className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
+        <div className="flex min-h-screen font-sans">
+            {/* Left side: Form */}
+            <main className="w-full overflow-y-auto bg-slate-900 p-8 text-slate-300 sm:p-12 lg:w-3/5">
+                 <header className="mb-8">
+                    <img 
+                        src="https://warrior.art.br/wp-content/uploads/2023/07/Roberto-Guerreiro-Art-Director-Logo-1.png"
+                        alt="Guerreiro Art Director Logo"
+                        className="h-12 w-auto"
+                    />
+                     <h1 className="mt-6 text-3xl font-bold text-[#D33434]">Informações de Projetos.</h1>
+                     <p className="mt-2 text-sm text-slate-400">1 – Dados da empresa | 2 – Informações do projeto | 3 – Parte técnica do projeto | 4 – Design e conteúdo | 5 – Métricas de sucesso</p>
+                </header>
+
                 <div className="mb-8 flex">
                     <button
                         type="button"
                         onClick={onBackToHome}
-                        className="flex items-center gap-2 rounded-md bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                        className="flex items-center gap-2 rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900"
                         aria-label="Voltar para a página inicial"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -164,7 +172,7 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({ onBackToHome }) => {
                         Voltar
                     </button>
                 </div>
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form onSubmit={handleSubmit} className="space-y-4">
                     <ContactInfo data={formData} onChange={handleChange} />
                     <ProjectType data={formData} onChange={handleChange} />
                     <GeneralProjectInfo data={formData} onChange={handleChange} />
@@ -185,8 +193,8 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({ onBackToHome }) => {
                     <AdditionalInfo data={formData} onChange={handleChange} />
                     
                     {error && (
-                        <div className="rounded-md bg-red-50 p-4 text-center">
-                            <p className="text-sm font-medium text-red-700">{error}</p>
+                        <div className="rounded-md bg-red-500/10 p-4 text-center">
+                            <p className="text-sm font-medium text-red-400">{error}</p>
                         </div>
                     )}
 
@@ -211,7 +219,24 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({ onBackToHome }) => {
                     </div>
                 </form>
             </main>
-            <Footer />
+
+            {/* Right side: Illustration */}
+            <aside className="sticky top-0 hidden h-screen w-2/5 flex-col items-center justify-center bg-black p-8 text-white lg:flex">
+                <img 
+                    src="https://warrior.art.br/wp-content/uploads/2025/04/AdsMetrics-Ilustra-Anima-7.svg"
+                    alt="Ilustração de métricas e design"
+                    className="w-full max-w-2xl"
+                />
+                 <img 
+                    src="https://warrior.art.br/wp-content/uploads/2023/07/Roberto-Guerreiro-Art-Director-Logo-1.png"
+                    alt="Guerreiro Art Director Logo"
+                    className="mt-8 h-12 w-auto"
+                />
+                <h2 className="mt-4 text-3xl font-bold">Briefing de Projetos</h2>
+                <p className="mt-1 max-w-sm text-center text-slate-300">
+                    O briefing é ideal para entendermos bem o projeto e conhecer a empresa. Com ele, formamos nossa base de pesquisa e estudo para o desenvolvimento, criação e direção de arte.
+                </p>
+            </aside>
         </div>
     );
 };

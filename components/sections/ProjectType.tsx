@@ -1,7 +1,6 @@
 import React from 'react';
 import { Section } from '../layout/Section';
 import { CheckboxInput } from '../form/CheckboxInput';
-import { ClipboardListIcon } from '../icons/ClipboardListIcon';
 import type { FormSectionProps } from '../../types';
 
 const projectOptions = [
@@ -12,7 +11,7 @@ const projectOptions = [
 
 export const ProjectType: React.FC<FormSectionProps> = ({ data, onChange }) => {
     return (
-        <Section icon={<ClipboardListIcon />} title="Qual(is) tipo(s) de projeto você precisa?">
+        <Section title="Qual(is) tipo(s) de projeto você precisa?">
             <fieldset>
                 <legend className="text-sm font-bold text-slate-600">
                     Selecione uma ou mais opções

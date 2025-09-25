@@ -2,12 +2,11 @@
 import React from 'react';
 import { Section } from '../layout/Section';
 import { TextAreaInput } from '../form/TextAreaInput';
-import { QuestionMarkCircleIcon } from '../icons/QuestionMarkCircleIcon';
 import type { FormSectionProps } from '../../types';
 
 export const AdditionalInfo: React.FC<FormSectionProps> = ({ data, onChange }) => {
     return (
-        <Section icon={<QuestionMarkCircleIcon />} title="Informações Adicionais">
+        <Section title="Informações Adicionais">
             <TextAreaInput
                 label="Gostaria de acrescentar mais alguma informação?"
                 name="additionalInfo"

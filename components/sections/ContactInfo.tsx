@@ -2,12 +2,11 @@
 import React from 'react';
 import { Section } from '../layout/Section';
 import { TextInput } from '../form/TextInput';
-import { AddressBookIcon } from '../icons/AddressBookIcon';
 import type { FormSectionProps } from '../../types';
 
 export const ContactInfo: React.FC<FormSectionProps> = ({ data, onChange }) => {
     return (
-        <Section icon={<AddressBookIcon />} title="Informações de Contato">
+        <Section title="Informações de Contato">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <TextInput 
                     label="Nome Completo"

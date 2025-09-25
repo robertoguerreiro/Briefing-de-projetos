@@ -5,7 +5,6 @@ import { RadioGroup } from '../form/RadioGroup';
 import { CheckboxInput } from '../form/CheckboxInput';
 import { TextInput } from '../form/TextInput';
 import { TextAreaInput } from '../form/TextAreaInput';
-import { LightBulbIcon } from '../icons/LightBulbIcon';
 import type { FormSectionProps } from '../../types';
 
 const visualStyleOptions = [
@@ -19,7 +18,7 @@ const visualStyleOptions = [
 
 export const BrandBriefing: React.FC<FormSectionProps> = ({ data, onChange, onRadioChange, onCheckboxChange }) => {
     return (
-        <Section icon={<LightBulbIcon />} title="Briefing de Marca (Branding / Identidade Visual / Rebranding)">
+        <Section title="Briefing de Marca (Branding / Identidade Visual / Rebranding)">
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                 <RadioGroup
                     legend="Sua marca já possui um logotipo?"

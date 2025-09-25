@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface SelectInputProps {
@@ -12,7 +13,7 @@ interface SelectInputProps {
 export const SelectInput: React.FC<SelectInputProps> = ({ label, name, value, onChange, options, required = false }) => {
     return (
         <div>
-            <label htmlFor={name} className="block text-sm font-bold text-slate-600">
+            <label htmlFor={name} className="block text-sm font-bold text-slate-400">
                 {label}
                 {required && <span className="text-red-500"> *</span>}
             </label>
@@ -22,7 +23,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({ label, name, value, on
                 value={value}
                 onChange={onChange}
                 required={required}
-                className="mt-1 block w-full rounded-md border-slate-300 bg-slate-50 py-3 pl-4 pr-10 text-base shadow-sm valid:border-blue-500 focus:outline-none focus:ring-2 focus:ring-red-600"
+                className="mt-1 block w-full rounded-md border-slate-600 bg-slate-800 py-3 pl-4 pr-10 text-base text-slate-100 shadow-sm valid:border-blue-500 focus:outline-none focus:ring-2 focus:ring-red-600"
             >
                 <option value="" disabled>Selecione...</option>
                 {options.map(option => (

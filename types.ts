@@ -1,8 +1,6 @@
-// FIX: Import React to provide the 'React' namespace for types like React.ChangeEvent.
-import type React from 'react';
-
+// Fix: Defining the types used across the application.
 export interface FormData {
-    id?: string;
+    id: string;
     fullName: string;
     email: string;
     phone: string;
@@ -35,8 +33,6 @@ export interface FormData {
     socialMedia: string;
     additionalInfo: string;
     howFound: string;
-
-    // Video Briefing fields
     videoTypes: string[];
     otherVideoType: string;
     videoDuration: string;
@@ -47,8 +43,6 @@ export interface FormData {
     videoSubtitles: string;
     videoDistribution: string[];
     otherVideoDistribution: string;
-
-    // Website Briefing fields
     websiteObjectives: string[];
     otherWebsiteObjective: string;
     mainUserAction: string;
@@ -63,6 +57,6 @@ export interface FormData {
 export interface FormSectionProps {
     data: Omit<FormData, 'id'>;
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-    onRadioChange?: (name: keyof FormData, value: string) => void;
-    onCheckboxChange?: (name: keyof FormData, value: string) => void;
+    onRadioChange?: (name: string, value: string) => void;
+    onCheckboxChange?: (name: string, value: string) => void;
 }

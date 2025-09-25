@@ -3,12 +3,11 @@ import React from 'react';
 import { Section } from '../layout/Section';
 import { TextAreaInput } from '../form/TextAreaInput';
 import { RadioGroup } from '../form/RadioGroup';
-import { MegaphoneIcon } from '../icons/MegaphoneIcon';
 import type { FormSectionProps } from '../../types';
 
 export const DigitalMarketing: React.FC<FormSectionProps> = ({ data, onChange, onRadioChange }) => {
     return (
-        <Section icon={<MegaphoneIcon />} title="Marketing Digital (Opcional)">
+        <Section title="Marketing Digital (Opcional)">
             <TextAreaInput
                 label="Você já utiliza alguma estratégia de marketing digital?"
                 name="digitalMarketingStrategy"
