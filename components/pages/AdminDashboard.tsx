@@ -24,9 +24,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, on
             const storedBriefings = localStorage.getItem('briefings');
             if (storedBriefings) {
                 const parsedBriefings: FormData[] = JSON.parse(storedBriefings);
-                setBriefings(parsedBriefings.sort((a, b) => new Date(b.submission_date!).getTime() - new Date(a.submission_date!).getTime()));
+                const sortedBriefings = parsedBriefings.sort((a, b) => {
+                    // Safely handle cases where submission_date might be missing
+                    const dateA = a.submission_date ? new Date(a.submission_date).getTime() : 0;
+                    const dateB = b.submission_date ? new Date(b.submission_date).getTime() : 0;
+                    return dateB - dateA; // Newest first
+                });
+                setBriefings(sortedBriefings);
             }
         } catch (err) {
+            console.error("Failed to load or parse briefings:", err);
             setError('Falha ao carregar briefings do armazenamento local.');
         } finally {
             setIsLoading(false);
@@ -131,7 +138,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, on
                                                 <p className="font-bold truncate">{b.projectName || 'Projeto sem nome'}</p>
                                                 <p className="text-sm truncate">{b.fullName} ({b.company || 'N/A'})</p>
                                                 <p className="text-xs opacity-75 mt-1">
-                                                    {new Date(b.submission_date!).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    {b.submission_date ? new Date(b.submission_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Data indisponível'}
                                                 </p>
                                             </button>
                                         </li>

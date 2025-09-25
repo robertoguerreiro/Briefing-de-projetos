@@ -14,7 +14,7 @@ export const generatePdf = (data: FormData): void => {
     const printableContent = `
         <html>
             <head>
-                <title>Briefing - ${projectName}</title>
+                <title>Briefing - ${projectName} (ID: ${data.id})</title>
                 <style>
                     body { 
                         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
@@ -22,23 +22,25 @@ export const generatePdf = (data: FormData): void => {
                         color: #333;
                         margin: 2rem;
                     }
-                    h1, h2, h3 { 
+                    h1, h2 { 
                         color: #D33434;
                         padding-bottom: 10px;
                     }
                      h1 {
                         border-bottom: 2px solid #eee;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: baseline;
                      }
+                    h1 .project-id {
+                        font-size: 0.6em; 
+                        color: #666; 
+                        font-weight: normal;
+                    }
                     h2 {
                         font-size: 1.2rem;
                         color: #333;
                         margin-top: -10px;
-                    }
-                    h3 {
-                        font-size: 1rem;
-                        color: #555;
-                        font-weight: normal;
-                        margin-top: -15px;
                         margin-bottom: 20px;
                     }
                     pre { 
@@ -53,10 +55,11 @@ export const generatePdf = (data: FormData): void => {
                 </style>
             </head>
             <body>
-                <h1>Briefing de Projeto: ${projectName}</h1>
-                <h3>ID do Projeto: ${data.id}</h3>
+                <h1>
+                    <span>Briefing de Projeto: ${projectName}</span>
+                    <span class="project-id">ID: ${data.id}</span>
+                </h1>
                 <h2>Cliente: ${companyName} (${data.email})</h2>
-                <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;" />
                 <pre>${briefingText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
             </body>
         </html>
