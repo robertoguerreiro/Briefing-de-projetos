@@ -43,14 +43,12 @@ export const generatePdf = (data: FormData): void => {
                         margin-top: -10px;
                         margin-bottom: 20px;
                     }
-                    pre { 
-                        white-space: pre-wrap; 
-                        background-color: #f8f8f8; 
-                        padding: 15px; 
-                        border-radius: 5px; 
-                        font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-                        font-size: 0.9rem;
-                        border: 1px solid #ddd;
+                    .briefing-content p {
+                        margin: 0.5rem 0;
+                        font-size: 0.95rem;
+                    }
+                    .briefing-content strong {
+                        color: #111;
                     }
                 </style>
             </head>
@@ -60,7 +58,7 @@ export const generatePdf = (data: FormData): void => {
                     <span class="project-id">ID: ${data.id}</span>
                 </h1>
                 <h2>Cliente: ${companyName} (${data.email})</h2>
-                <pre>${briefingText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                <div class="briefing-content">${briefingText}</div>
             </body>
         </html>
     `;
