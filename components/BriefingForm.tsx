@@ -1,171 +1,151 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
+import type { FormData } from '../types';
+import { Header } from './layout/Header';
+import { Footer } from './layout/Footer';
 import { ContactInfo } from './sections/ContactInfo';
 import { ProjectType } from './sections/ProjectType';
 import { GeneralProjectInfo } from './sections/GeneralProjectInfo';
 import { BrandBriefing } from './sections/BrandBriefing';
-import { DigitalMarketing } from './sections/DigitalMarketing';
-import { AdditionalInfo } from './sections/AdditionalInfo';
-import { PaperAirplaneIcon } from './icons/PaperAirplaneIcon';
-import type { FormData } from '../types';
 import { VideoBriefing } from './sections/VideoBriefing';
 import { WebsiteBriefing } from './sections/WebsiteBriefing';
-import { ThankYouPage } from './pages/ThankYouPage';
+import { DigitalMarketing } from './sections/DigitalMarketing';
+import { AdditionalInfo } from './sections/AdditionalInfo';
 import { LoadingSpinner } from './icons/LoadingSpinner';
-import { saveBriefing } from '../utils/api';
-
+import { SparklesIcon } from './icons/SparklesIcon';
+import { ThankYouPage } from './pages/ThankYouPage';
 
 interface BriefingFormProps {
     onBackToHome: () => void;
 }
 
+const initialFormData: Omit<FormData, 'id' | 'submission_date'> = {
+    fullName: '',
+    email: '',
+    phone: '',
+    company: '',
+    role: '',
+    projectTypes: [],
+    projectName: '',
+    projectSummary: '',
+    projectObjectives: '',
+    targetAudience: '',
+    problemToSolve: '',
+    keyDifferentiators: '',
+    deadline: '',
+    budget: '',
+    hasLogo: '',
+    hasBrandManual: '',
+    visualStyles: [],
+    otherStyle: '',
+    colorPreferences: '',
+    fontPreferences: '',
+    hasSlogan: '',
+    brandValues: '',
+    brandAudienceDetails: '',
+    competitors: '',
+    visualReferences: '',
+    visualDislikes: '',
+    digitalMarketingStrategy: '',
+    seoImportance: '',
+    paidTraffic: '',
+    socialMedia: '',
+    additionalInfo: '',
+    howFound: '',
+    videoTypes: [],
+    otherVideoType: '',
+    videoDuration: '',
+    videoStyleLinks: '',
+    videoScriptStatus: '',
+    videoAssetsStatus: '',
+    videoNarration: '',
+    videoSubtitles: '',
+    videoDistribution: [],
+    otherVideoDistribution: '',
+    websiteObjectives: [],
+    otherWebsiteObjective: '',
+    mainUserAction: '',
+    hasDomain: '',
+    hasHosting: '',
+    websiteSections: '',
+    specificFunctionality: '',
+    likedWebsites: '',
+    contentProvider: '',
+};
+
 export const BriefingForm: React.FC<BriefingFormProps> = ({ onBackToHome }) => {
-    const [formData, setFormData] = useState<Omit<FormData, 'id' | 'submission_date'>>({
-        fullName: '',
-        email: '',
-        phone: '',
-        company: '',
-        role: '',
-        projectTypes: [],
-        projectName: '',
-        projectSummary: '',
-        projectObjectives: '',
-        targetAudience: '',
-        problemToSolve: '',
-        keyDifferentiators: '',
-        deadline: '',
-        budget: '',
-        hasLogo: '',
-        hasBrandManual: '',
-        visualStyles: [],
-        otherStyle: '',
-        colorPreferences: '',
-        fontPreferences: '',
-        hasSlogan: '',
-        brandValues: '',
-        brandAudienceDetails: '',
-        competitors: '',
-        visualReferences: '',
-        visualDislikes: '',
-        digitalMarketingStrategy: '',
-        seoImportance: '',
-        paidTraffic: '',
-        socialMedia: '',
-        additionalInfo: '',
-        howFound: '',
-        videoTypes: [],
-        otherVideoType: '',
-        videoDuration: '',
-        videoStyleLinks: '',
-        videoScriptStatus: '',
-        videoAssetsStatus: '',
-        videoNarration: '',
-        videoSubtitles: '',
-        videoDistribution: [],
-        otherVideoDistribution: '',
-        websiteObjectives: [],
-        otherWebsiteObjective: '',
-        mainUserAction: '',
-        hasDomain: '',
-        hasHosting: '',
-        websiteSections: '',
-        specificFunctionality: '',
-        likedWebsites: '',
-        contentProvider: '',
-    });
-
-    const [isSubmitted, setIsSubmitted] = useState(false);
-    const [submittedData, setSubmittedData] = useState<FormData | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formData, setFormData] = useState(initialFormData);
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [submittedData, setSubmittedData] = useState<FormData | null>(null);
 
-    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value, type } = e.target;
-
-        if (type === 'checkbox' && name === 'projectTypes') {
-            const { checked } = e.target as HTMLInputElement;
-            setFormData(prev => ({
-                ...prev,
-                projectTypes: checked
-                    ? [...prev.projectTypes, value]
-                    : prev.projectTypes.filter(item => item !== value)
-            }));
-        } else {
-            setFormData(prev => ({ ...prev, [name]: value }));
-        }
-    }, []);
-
-    const handleRadioChange = useCallback((name: keyof FormData, value: string) => {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }, []);
-
-    const handleCheckboxGroupChange = useCallback((name: keyof FormData, value: string) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+    
+    const handleCheckboxChange = (name: string, value: string) => {
         setFormData(prev => {
-            const currentValues = prev[name] as string[];
-            const newValues = currentValues.includes(value)
-                ? currentValues.filter(item => item !== value)
-                : [...currentValues, value];
-            return { ...prev, [name]: newValues };
+            const list = prev[name as keyof typeof prev] as string[];
+            const newList = list.includes(value) ? list.filter(item => item !== value) : [...list, value];
+            return { ...prev, [name]: newList };
         });
-    }, []);
+    };
+
+    const handleRadioChange = (name: string, value: string) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsSubmitting(true);
+        if (formData.projectTypes.length === 0) {
+            setError('Por favor, selecione pelo menos um tipo de projeto.');
+            window.scrollTo(0, 0);
+            return;
+        }
         setError(null);
+        setIsLoading(true);
         
-        const submissionId = new Date().toISOString();
-        const submissionWithId: FormData = { ...formData, id: submissionId };
+        // Simulate a short delay for user feedback
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         try {
-            // Salva no localStorage como backup
-            try {
-                const submissions = JSON.parse(localStorage.getItem('briefingSubmissions') || '[]');
-                submissions.push(submissionWithId);
-                localStorage.setItem('briefingSubmissions', JSON.stringify(submissions));
-            } catch (localError) {
-                 console.warn("Failed to save briefing to local storage as backup", localError);
-            }
+            const submissionDate = new Date().toISOString();
+            const uniqueId = Date.now().toString();
 
-            // Envia para a API
-            const response = await saveBriefing(formData);
-            if(response.success) {
-                setSubmittedData(submissionWithId);
-                setIsSubmitted(true);
-            } else {
-                throw new Error(response.error || 'Ocorreu um erro desconhecido.');
-            }
+            const completeFormData: FormData = {
+                ...formData,
+                id: uniqueId,
+                submission_date: submissionDate,
+            };
 
-        } catch (error) {
-            console.error("Failed to save briefing via API", error);
-            setError(error instanceof Error ? error.message : "Ocorreu um erro ao enviar o briefing. Por favor, tente novamente.");
+            // Save to localStorage
+            const existingBriefings: FormData[] = JSON.parse(localStorage.getItem('briefings') || '[]');
+            existingBriefings.push(completeFormData);
+            localStorage.setItem('briefings', JSON.stringify(existingBriefings));
+
+            setSubmittedData(completeFormData);
+
+        } catch (err) {
+            setError('Ocorreu um erro ao salvar o briefing localmente. Tente novamente.');
+            window.scrollTo(0, 0);
         } finally {
-            setIsSubmitting(false);
+            setIsLoading(false);
         }
     };
-    
-    if (isSubmitted && submittedData) {
-        return <ThankYouPage onBackToHome={onBackToHome} formData={submittedData} />;
+
+    if (submittedData) {
+        return <ThankYouPage formData={submittedData} onBackToHome={onBackToHome} />;
     }
 
     return (
-        <div className="flex min-h-screen font-sans">
-            {/* Left side: Form */}
-            <main className="w-full overflow-y-auto bg-slate-900 p-8 text-slate-300 sm:p-12 lg:w-3/5">
-                 <header className="mb-8">
-                    <img 
-                        src="https://warrior.art.br/wp-content/uploads/2023/07/Roberto-Guerreiro-Art-Director-Logo-1.png"
-                        alt="Guerreiro Art Director Logo"
-                        className="h-12 w-auto"
-                    />
-                     <h1 className="mt-6 text-3xl font-bold text-[#D33434]">Informações de Projetos.</h1>
-                     <p className="mt-2 text-sm text-slate-400">1 – Dados da empresa | 2 – Informações do projeto | 3 – Parte técnica do projeto | 4 – Design e conteúdo | 5 – Métricas de sucesso</p>
-                </header>
-
+        <div className="bg-slate-900">
+            <Header />
+            <main className="container mx-auto max-w-4xl px-4 py-10">
                 <div className="mb-8 flex">
-                    <button
+                     <button
                         type="button"
                         onClick={onBackToHome}
-                        className="flex items-center gap-2 rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                        className="flex items-center gap-2 rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900"
                         aria-label="Voltar para a página inicial"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -174,71 +154,55 @@ export const BriefingForm: React.FC<BriefingFormProps> = ({ onBackToHome }) => {
                         Voltar
                     </button>
                 </div>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <ContactInfo data={formData} onChange={handleChange} />
-                    <ProjectType data={formData} onChange={handleChange} />
-                    <GeneralProjectInfo data={formData} onChange={handleChange} />
-                    
-                    {formData.projectTypes.includes('branding_visual') && (
-                        <BrandBriefing data={formData} onChange={handleChange} onRadioChange={handleRadioChange} onCheckboxChange={handleCheckboxGroupChange} />
-                    )}
-
-                    {formData.projectTypes.includes('video_animation') && (
-                        <VideoBriefing data={formData} onChange={handleChange} onRadioChange={handleRadioChange} onCheckboxChange={handleCheckboxGroupChange} />
-                    )}
-
-                    {formData.projectTypes.includes('website') && (
-                        <WebsiteBriefing data={formData} onChange={handleChange} onRadioChange={handleRadioChange} onCheckboxChange={handleCheckboxGroupChange} />
-                    )}
-
-                    <DigitalMarketing data={formData} onChange={handleChange} onRadioChange={handleRadioChange} />
-                    <AdditionalInfo data={formData} onChange={handleChange} />
-                    
+                <form onSubmit={handleSubmit} noValidate>
                     {error && (
-                        <div className="rounded-md bg-red-500/10 p-4 text-center">
-                            <p className="text-sm font-medium text-red-400">{error}</p>
+                        <div className="mb-6 rounded-md border border-red-700 bg-red-900/50 p-4 text-center text-red-200">
+                            {error}
                         </div>
                     )}
 
-                    <div className="flex justify-end pt-4">
+                    <ContactInfo data={formData} onChange={handleChange} />
+                    <ProjectType data={formData} onChange={(e) => handleCheckboxChange('projectTypes', (e.target as HTMLInputElement).value)} />
+                    <GeneralProjectInfo data={formData} onChange={handleChange} />
+
+                    {formData.projectTypes.includes('branding_visual') && (
+                        <BrandBriefing data={formData} onChange={handleChange} onRadioChange={handleRadioChange} onCheckboxChange={handleCheckboxChange} />
+                    )}
+
+                    {formData.projectTypes.includes('video_animation') && (
+                         <VideoBriefing data={formData} onChange={handleChange} onRadioChange={handleRadioChange} onCheckboxChange={handleCheckboxChange} />
+                    )}
+
+                    {formData.projectTypes.includes('website') && (
+                        <WebsiteBriefing data={formData} onChange={handleChange} onRadioChange={handleRadioChange} onCheckboxChange={handleCheckboxChange} />
+                    )}
+                    
+                    <DigitalMarketing data={formData} onChange={handleChange} onRadioChange={handleRadioChange} />
+                    <AdditionalInfo data={formData} onChange={handleChange} />
+
+                    <div className="mt-10 border-t border-slate-700 pt-6 text-center">
                         <button 
-                            type="submit" 
-                            className="flex items-center justify-center gap-3 rounded-md bg-red-600 px-8 py-3 text-lg font-semibold text-white shadow-md transition-all hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-red-400"
-                            disabled={isSubmitting}
+                            type="submit"
+                            disabled={isLoading}
+                            className="inline-flex items-center justify-center gap-3 rounded-full bg-red-600 px-12 py-4 text-lg font-bold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:bg-slate-600"
                         >
-                            {isSubmitting ? (
+                            {isLoading ? (
                                 <>
-                                    <LoadingSpinner className="h-5 w-5 animate-spin" />
-                                    Enviando...
+                                    <LoadingSpinner className="h-6 w-6 animate-spin" />
+                                    <span>Enviando...</span>
                                 </>
                             ) : (
                                 <>
-                                    Finalizar e Enviar Briefing
-                                    <PaperAirplaneIcon className="h-5 w-5" />
+                                    <SparklesIcon className="h-6 w-6" />
+                                    <span>Enviar e Gerar PDF</span>
                                 </>
                             )}
                         </button>
                     </div>
+
                 </form>
             </main>
-
-            {/* Right side: Illustration */}
-            <aside className="sticky top-0 hidden h-screen w-2/5 flex-col items-center justify-center bg-black p-8 text-white lg:flex">
-                <img 
-                    src="https://warrior.art.br/wp-content/uploads/2025/04/AdsMetrics-Ilustra-Anima-7.svg"
-                    alt="Ilustração de métricas e design"
-                    className="w-full max-w-2xl"
-                />
-                 <img 
-                    src="https://warrior.art.br/wp-content/uploads/2023/07/Roberto-Guerreiro-Art-Director-Logo-1.png"
-                    alt="Guerreiro Art Director Logo"
-                    className="mt-8 h-12 w-auto"
-                />
-                <h2 className="mt-4 text-3xl font-bold">Briefing de Projetos</h2>
-                <p className="mt-1 max-w-sm text-center text-slate-300">
-                    O briefing é ideal para entendermos bem o projeto e conhecer a empresa. Com ele, formamos nossa base de pesquisa e estudo para o desenvolvimento, criação e direção de arte.
-                </p>
-            </aside>
+            <Footer />
         </div>
     );
 };
