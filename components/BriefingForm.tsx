@@ -10,6 +10,7 @@ import { WebsiteBriefing } from './sections/WebsiteBriefing';
 import { DigitalMarketing } from './sections/DigitalMarketing';
 import { AdditionalInfo } from './sections/AdditionalInfo';
 import { LoadingSpinner } from './icons/LoadingSpinner';
+// Fix: Correct import path and ensure it's treated as a module.
 import { ThankYouPage } from './pages/ThankYouPage';
 import { Footer } from './layout/Footer';
 
