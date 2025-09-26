@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+
+import React, { useEffect, useState } from 'react';
+import type { FormData } from '../../types';
 import { Header } from '../layout/Header';
 import { Footer } from '../layout/Footer';
 import { LoadingSpinner } from '../icons/LoadingSpinner';
 import { TrashIcon } from '../icons/TrashIcon';
 import { DocumentDownloadIcon } from '../icons/DocumentDownloadIcon';
-import type { FormData } from '../../types';
 import { generateBriefingPDF } from '../../utils/generatePdf';
+import { formatBriefing } from '../../utils/formatBriefing';
 
 interface AdminDashboardProps {
     onBackToHome: () => void;
@@ -14,196 +16,129 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, onLogout }) => {
     const [briefings, setBriefings] = useState<FormData[]>([]);
-    const [selectedBriefing, setSelectedBriefing] = useState<FormData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [briefingToDelete, setBriefingToDelete] = useState<FormData | null>(null);
+    const [selectedBriefing, setSelectedBriefing] = useState<FormData | null>(null);
+    const [isDeleting, setIsDeleting] = useState<string | number | null>(null);
 
     useEffect(() => {
+        setIsLoading(true);
         try {
             const storedData = localStorage.getItem('briefings');
-            if (storedData) {
-                const parsedData: FormData[] = JSON.parse(storedData);
-                // Sort by submission date, newest first
-                const sortedData = parsedData.sort((a, b) => {
-                    const dateA = a.submission_date ? new Date(a.submission_date).getTime() : 0;
-                    const dateB = b.submission_date ? new Date(b.submission_date).getTime() : 0;
-                    return dateB - dateA;
-                });
-                setBriefings(sortedData);
-                if (sortedData.length > 0) {
-                    setSelectedBriefing(sortedData[0]);
-                }
-            }
-        } catch (err) {
-            setError("Falha ao carregar briefings do armazenamento local. Os dados podem estar corrompidos.");
-            console.error(err);
+            const parsedData: FormData[] = storedData ? JSON.parse(storedData) : [];
+            const sortedData = parsedData.sort((a, b) => {
+                const dateA = a.submission_date ? new Date(a.submission_date).getTime() : 0;
+                const dateB = b.submission_date ? new Date(b.submission_date).getTime() : 0;
+                return dateB - dateA;
+            });
+            setBriefings(sortedData);
+        } catch (e) {
+            console.error("Error loading briefings from localStorage:", e);
+            setError("Falha ao carregar briefings. Os dados podem estar corrompidos.");
         } finally {
             setIsLoading(false);
         }
     }, []);
-    
-    const openDeleteModal = (briefing: FormData) => {
-        setBriefingToDelete(briefing);
-        setIsDeleteModalOpen(true);
-    };
 
-    const closeDeleteModal = () => {
-        setBriefingToDelete(null);
-        setIsDeleteModalOpen(false);
-    };
-
-    const handleDelete = () => {
-        if (!briefingToDelete) return;
-
-        try {
-            const updatedBriefings = briefings.filter(b => b.id !== briefingToDelete.id);
-            localStorage.setItem('briefings', JSON.stringify(updatedBriefings));
-            setBriefings(updatedBriefings);
-
-            if (selectedBriefing?.id === briefingToDelete.id) {
-                setSelectedBriefing(updatedBriefings.length > 0 ? updatedBriefings[0] : null);
+    const handleDelete = (id: string | number) => {
+        if (window.confirm('Tem certeza que deseja excluir este briefing?')) {
+            setIsDeleting(id);
+            try {
+                const updatedBriefings = briefings.filter(b => b.id !== id);
+                localStorage.setItem('briefings', JSON.stringify(updatedBriefings));
+                setBriefings(updatedBriefings);
+                if (selectedBriefing?.id === id) {
+                    setSelectedBriefing(null);
+                }
+            } catch (e) {
+                console.error("Error deleting briefing from localStorage:", e);
+                alert("Falha ao excluir briefing.");
+            } finally {
+                setIsDeleting(null);
             }
-        } catch (err) {
-            setError("Falha ao excluir o briefing.");
-            console.error(err);
-        } finally {
-            closeDeleteModal();
         }
     };
     
-    const formattedBriefingDetails = useMemo(() => {
-        if (!selectedBriefing) return null;
+    const handleDownload = async (briefing: FormData) => {
+        await generateBriefingPDF(briefing);
+    };
 
-        const details: { label: string; value: string | string[] }[] = Object.entries(selectedBriefing)
-            .map(([key, value]) => ({ label: key, value }))
-            .filter(item => item.value && typeof item.value !== 'object' || (Array.isArray(item.value) && item.value.length > 0));
-            
-        return details;
+    const renderContent = () => {
+        if (isLoading) {
+            return <div className="flex items-center justify-center p-8"><LoadingSpinner className="h-8 w-8 animate-spin text-red-500" /> <span className="ml-4">Carregando briefings...</span></div>;
+        }
+        if (error) {
+            return <div className="rounded-md bg-red-100 p-4 text-center text-red-700">{error}</div>;
+        }
+        if (briefings.length === 0) {
+            return <p className="p-8 text-center text-slate-500">Nenhum briefing salvo localmente encontrado.</p>;
+        }
 
-    }, [selectedBriefing]);
-
+        return (
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
+                <aside className="md:col-span-4 lg:col-span-3">
+                    <h3 className="mb-4 text-lg font-semibold text-slate-800">Briefings ({briefings.length})</h3>
+                    <ul className="space-y-2">
+                        {briefings.map(b => (
+                            <li key={b.id}>
+                                <button
+                                    onClick={() => setSelectedBriefing(b)}
+                                    className={`w-full rounded-md p-3 text-left transition-colors ${selectedBriefing?.id === b.id ? 'bg-red-600 text-white shadow-md' : 'bg-white hover:bg-slate-50'}`}
+                                >
+                                    <p className="font-bold truncate">{b.projectName || 'Projeto sem nome'}</p>
+                                    <p className={`text-sm ${selectedBriefing?.id === b.id ? 'text-red-100' : 'text-slate-600'}`}>{b.fullName}</p>
+                                    <p className={`mt-1 text-xs ${selectedBriefing?.id === b.id ? 'text-red-200' : 'text-slate-400'}`}>
+                                        {b.submission_date ? new Date(b.submission_date).toLocaleString('pt-BR') : 'Data indisponível'}
+                                    </p>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </aside>
+                <section className="md:col-span-8 lg:col-span-9">
+                    {selectedBriefing ? (
+                        <div className="rounded-lg bg-white p-6 shadow-md">
+                            <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-slate-800">{selectedBriefing.projectName}</h2>
+                                    <p className="text-slate-600">Enviado por: {selectedBriefing.fullName} ({selectedBriefing.email})</p>
+                                </div>
+                                <div className="flex flex-shrink-0 items-center gap-2">
+                                     <button onClick={() => handleDownload(selectedBriefing)} className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700">
+                                        <DocumentDownloadIcon className="h-4 w-4" />
+                                    </button>
+                                    <button onClick={() => handleDelete(selectedBriefing.id)} disabled={isDeleting === selectedBriefing.id} className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm text-white transition-colors hover:bg-red-700 disabled:bg-red-400">
+                                        {isDeleting === selectedBriefing.id ? <LoadingSpinner className="h-4 w-4 animate-spin"/> : <TrashIcon className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                            <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-4 font-sans text-sm text-slate-700">{formatBriefing(selectedBriefing)}</pre>
+                        </div>
+                    ) : (
+                        <div className="flex h-full items-center justify-center rounded-lg bg-white p-8 shadow-inner">
+                            <p className="text-slate-500">Selecione um briefing da lista para ver os detalhes.</p>
+                        </div>
+                    )}
+                </section>
+            </div>
+        );
+    };
 
     return (
-        <div className="flex min-h-screen flex-col bg-slate-100">
-            <Header />
-            <main className="flex flex-grow flex-col p-4 md:p-8">
-                <div className="mb-6 flex items-center justify-between">
-                     <button
-                        type="button"
-                        onClick={onBackToHome}
-                        className="flex items-center gap-2 rounded-md bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                    >
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                        </svg>
-                        Início
-                    </button>
-                    <h1 className="text-3xl font-bold text-slate-800">Briefings (Salvos Localmente)</h1>
-                    <button
-                        onClick={onLogout}
-                        className="rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-600"
-                    >
-                        Sair
-                    </button>
+        <div className="flex min-h-screen flex-col bg-slate-100 text-slate-800">
+             <div className="bg-white shadow-md">
+                <div className="container mx-auto flex items-center justify-between p-4">
+                    <h1 className="text-2xl font-bold">Painel Administrativo</h1>
+                    <div className="flex items-center gap-4">
+                        <button onClick={onBackToHome} className="rounded-md bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-300">Início</button>
+                        <button onClick={onLogout} className="rounded-md bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700">Sair</button>
+                    </div>
                 </div>
-
-                {isLoading && (
-                    <div className="flex flex-grow items-center justify-center">
-                        <LoadingSpinner className="h-12 w-12 animate-spin text-red-600" />
-                    </div>
-                )}
-                
-                {error && <div className="rounded-md bg-red-100 p-4 text-red-700">{error}</div>}
-
-                {!isLoading && !error && briefings.length === 0 && (
-                    <div className="flex flex-grow items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-white text-center">
-                        <p className="text-slate-500">Nenhum briefing encontrado.</p>
-                    </div>
-                )}
-                
-                {!isLoading && !error && briefings.length > 0 && (
-                    <div className="flex flex-grow gap-6 overflow-hidden rounded-lg bg-white shadow-md">
-                        {/* List Panel */}
-                        <div className="w-1/3 border-r border-slate-200">
-                             <ul className="h-full overflow-y-auto">
-                                {briefings.map(briefing => (
-                                    <li key={briefing.id}>
-                                        <button
-                                            onClick={() => setSelectedBriefing(briefing)}
-                                            className={`w-full border-l-4 p-4 text-left transition-colors hover:bg-slate-50 ${selectedBriefing?.id === briefing.id ? 'border-red-500 bg-red-50 text-red-700' : 'border-transparent'}`}
-                                        >
-                                            <p className="font-bold">{briefing.projectName || 'Projeto sem nome'}</p>
-                                            <p className="text-sm">{briefing.fullName} ({briefing.company || 'N/A'})</p>
-                                            <p className="text-xs text-slate-500">
-                                                {briefing.submission_date
-                                                    ? new Date(briefing.submission_date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-                                                    : 'Data indisponível'
-                                                }
-                                            </p>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        {/* Details Panel */}
-                        <div className="w-2/3 overflow-y-auto p-6">
-                            {selectedBriefing && formattedBriefingDetails ? (
-                                <div>
-                                    <div className="mb-4 flex items-start justify-between">
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-slate-800">{selectedBriefing.projectName}</h2>
-                                            <p className="text-slate-600">{selectedBriefing.fullName}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button onClick={() => generateBriefingPDF(selectedBriefing)} className="text-slate-500 hover:text-blue-600" aria-label="Baixar PDF">
-                                                <DocumentDownloadIcon className="h-6 w-6" />
-                                            </button>
-                                            <button onClick={() => openDeleteModal(selectedBriefing)} className="text-slate-500 hover:text-red-600" aria-label="Excluir briefing">
-                                                <TrashIcon className="h-6 w-6" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-3 border-t border-slate-200 pt-4">
-                                        {formattedBriefingDetails.map(({ label, value }) => (
-                                            <div key={label}>
-                                                <p className="text-xs font-bold uppercase text-slate-500">{label.replace(/([A-Z])/g, ' $1').trim()}</p>
-                                                <p className="text-slate-800">{Array.isArray(value) ? value.join(', ') : value}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex h-full items-center justify-center">
-                                    <p className="text-slate-500">Selecione um briefing para ver os detalhes.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
+            </div>
+            <main className="container mx-auto flex-grow p-4 md:p-8">
+                {renderContent()}
             </main>
             <Footer />
-            
-             {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && briefingToDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={closeDeleteModal}>
-                    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-lg font-bold text-slate-800">Confirmar Exclusão</h3>
-                        <p className="mt-2 text-slate-600">
-                            Você tem certeza que deseja excluir o briefing para o projeto "{briefingToDelete.projectName}"? Esta ação não pode ser desfeita.
-                        </p>
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button onClick={closeDeleteModal} className="rounded-md bg-slate-200 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-300">
-                                Cancelar
-                            </button>
-                            <button onClick={handleDelete} className="rounded-md bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700">
-                                Excluir
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
