@@ -7,41 +7,27 @@ interface AdminLoginProps {
     onBackToHome: () => void;
 }
 
-// SHA-256 hash of "003GuerreiroArt$"
-const MASTER_PASSWORD_HASH = "83a41111a955b4321b3337b56f5a3e1444f80878e1b65c363f885f83c13f6424";
-
-// Helper function to compute SHA-256 hash using the Web Crypto API
-async function sha256(message: string): Promise<string> {
-    const msgBuffer = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
-}
+const MASTER_PASSWORD = "003GuerreiroArt$";
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackToHome }) => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isChecking, setIsChecking] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setIsChecking(true);
         setError('');
 
-        try {
-            const inputHash = await sha256(password);
-            if (inputHash === MASTER_PASSWORD_HASH) {
+        // Simple direct comparison for reliability
+        setTimeout(() => {
+            if (password === MASTER_PASSWORD) {
                 onLoginSuccess();
             } else {
                 setError('Senha mestra incorreta.');
             }
-        } catch (err) {
-            console.error('Hashing error:', err);
-            setError('Ocorreu um erro ao verificar a senha. Seu navegador pode não ser compatível com a criptografia necessária.');
-        } finally {
             setIsChecking(false);
-        }
+        }, 300); // Simulate a small delay
     };
 
     return (
